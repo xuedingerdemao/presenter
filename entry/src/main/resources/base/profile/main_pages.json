@@ -1,0 +1,12 @@
+{
+  "src": [
+    "pages/Main/Index",
+    "pages/StartAdv/Start",
+    "pages/LoginPage/Login",
+    "pages/Main/Setting/Setting",
+    "pages/TaskDetail/TaskDetail",
+    "pages/CarRecord/CarRecord",
+    "pages/DelayPage/DelayPage",
+    "pages/Report/Report"
+  ]
+}
