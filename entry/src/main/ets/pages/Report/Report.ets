@@ -1,4 +1,4 @@
-import { Card, CardItem, DateFormat, TopNavBar, Upload } from '@presenter/basic'
+import { Card, CardItem, DateFormat, SelectCard, TopNavBar, Upload } from '@presenter/basic'
 import { router } from '@kit.ArkUI'
 import { CommonRouterParams, ExceptionParamsType, ExceptionParamsTypeModel } from '../../models'
 
@@ -7,6 +7,57 @@ import { CommonRouterParams, ExceptionParamsType, ExceptionParamsTypeModel } fro
 struct Report {
   @State
   exceptionForm: ExceptionParamsTypeModel = new ExceptionParamsTypeModel({} as ExceptionParamsType)
+  @State
+  selectIndex: number = -1
+  exceptionList: string[] = ["发动机启用困难", "不着车，漏油", "照明失灵", "有异常响动", "排烟异常温度异常", "其他问题"]
+  // 选择类型的弹层
+  selectDialog: CustomDialogController = new CustomDialogController({
+    builder: SelectCard({
+      cardContent: () => {
+        // 必须调用一个builder的函数
+        this.getCardContent()
+      },
+      confirm: () => {
+        if (this.selectIndex > -1) {
+          this.exceptionForm.exceptionType = this.exceptionList[this.selectIndex]
+        }
+        this.selectDialog.close()
+      }
+    }),
+    customStyle: true,
+    alignment: DialogAlignment.Bottom
+  })
+
+  @Builder
+  getCardContent() {
+    ForEach(this.exceptionList, (item: string, index: number) => {
+      this.getSingleItem(item, index, index !== this.exceptionList.length - 1)
+    })
+  }
+
+  @Builder
+  getSingleItem(item: string, index: number, showBorder: boolean) {
+    Row() {
+      Text(item)
+        .fontSize(14)
+        .fontColor($r("app.color.text_primary"))
+      Image(this.selectIndex === index ? $r("app.media.ic_check_true") : $r("app.media.ic_check_false"))
+        .width(32)
+        .height(32)
+    }
+    .onClick(() => {
+      this.selectIndex = index // 赋值索引
+    })
+    .height(60)
+    .width("100%")
+    .justifyContent(FlexAlign.SpaceBetween)
+    .border({
+      color: $r("app.color.background_divider"),
+      width: {
+        bottom: showBorder ? 1 : 0
+      }
+    })
+  }
 
   /*-----------------------👇👇 function 👇👇--------------------------------*/
   aboutToAppear() {
@@ -42,6 +93,9 @@ struct Report {
             CardItem({
               leftTitle: '异常类型',
               rightText: '请选择',
+              onRightClick: () => {
+                this.selectDialog.open()
+              }
             })
             CardItem({
               leftTitle: '异常描述',
