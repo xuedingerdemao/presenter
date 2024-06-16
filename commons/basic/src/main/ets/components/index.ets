@@ -21,3 +21,5 @@ export * from './modules/PreviewImg'
 export * from './modules/TaskTabs'
 
 export * from './modules/CheckBox'
+
+export * from './modules/SelectCard'
