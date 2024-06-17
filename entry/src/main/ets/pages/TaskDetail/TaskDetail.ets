@@ -1,14 +1,25 @@
 import { promptAction, router } from '@kit.ArkUI'
 import {
-  CommonRouterParams,
   DeliverParamsTypeModel,
+  ExceptionList,
   PickUpParamsModel,
   TaskDetailInfo,
   TaskDetailInfoModel,
   TaskTypeEnum
 } from '../../models'
-import { ImageList, Loading, Skeleton, ToggleCard, TopNavBar, Upload, UploadFile } from '@presenter/basic'
+import {
+  CommonRouterParams,
+  ImageList,
+  Loading,
+  Skeleton,
+  ToggleCard,
+  TopNavBar,
+  Upload,
+  UploadFile
+} from '@presenter/basic'
 import { deliverAPI, getTaskDetailAPI, pickUpAPI } from '../../api/modules/taskAPI'
+import { common } from '@kit.AbilityKit'
+import { call } from '@kit.TelephonyKit'
 
 class BaseBuilderClass {
   title: string = ""
@@ -102,6 +113,9 @@ struct TaskDetail {
         Text(item.value).fontSize(14).fontColor($r('app.color.text_secondary'))
         if (item.icon) {
           Image(item.icon).width(24).height(24)
+            .onClick(() => {
+              item.iconClick && item.iconClick()
+            })
         }
       }
     }.justifyContent(FlexAlign.SpaceBetween).width('100%').margin({
@@ -116,7 +130,7 @@ struct TaskDetail {
       Column() {
         Row() {
           Text("起").baseTextOneStyle()
-          Text("北京市昌平区回龙观街道西三旗桥东金燕龙写字楼8877号").baseTextTwoStyle()
+          Text("地址地址").baseTextTwoStyle()
         }.margin({ top: 21 })
 
         Row() {
@@ -129,13 +143,20 @@ struct TaskDetail {
         right: 20
       })
 
-      Column() {
-        Image($r("app.media.ic_navigation")).width(22).height(22)
-        Text("开始导航").fontSize(14).margin({ top: 10, bottom: 10 })
-      }.justifyContent(FlexAlign.SpaceBetween)
-      .margin({
-        top: 20
-      })
+      // 送货过程中才显示导航
+      if (this.taskDetailData.status === TaskTypeEnum.Line) {
+        Column() {
+          Image($r("app.media.ic_navigation")).width(22).height(22)
+          Text("开始导航").fontSize(14).margin({ top: 10, bottom: 10 })
+        }.justifyContent(FlexAlign.SpaceBetween)
+        .margin({
+          top: 20
+        })
+        .onClick(() => {
+          // 开启导航
+          this.beginNav()
+        })
+      }
 
     }.justifyContent(FlexAlign.SpaceBetween).alignItems(VerticalAlign.Center).width('100%')
 
@@ -146,7 +167,10 @@ struct TaskDetail {
     })
     this.getBaseContentItem({
       title: '联系人',
-      value: '2132324324343434'
+      value: '2132324324343434',
+      iconClick: () => {
+        call.makeCall(this.taskDetailData.startHandoverPhone)
+      }
     })
     this.getBaseContentItem({
       title: '联系电话',
@@ -178,7 +202,7 @@ struct TaskDetail {
           .width(125)
           .onClick(() => {
             router.pushUrl({
-              url: 'pages/Delay/Delay',
+              url: 'pages/DelayPage/DelayPage',
               params: {
                 id: this.taskDetailData.id,
                 oldTime: this.taskDetailData.planDepartureTime // 计划时间
@@ -204,7 +228,7 @@ struct TaskDetail {
           .width(125)
           .onClick(() => {
             router.pushUrl({
-              url: 'pages/ExceptionReport/ExceptionReport',
+              url: 'pages/Report/Report',
               params: {
                 id: this.taskDetailData.transportTaskId // id并不是订单的id 而是transportTaskId
               }
@@ -298,12 +322,66 @@ struct TaskDetail {
     })
   }
 
+  // 获取异常信息
+  @Builder
+  getExceptionContent() {
+    ForEach(this.taskDetailData.exceptionList, (item: ExceptionList) => {
+      Row() {
+        Column() {
+          Row() {
+            Text("上报时间").fontSize(14).fontColor($r('app.color.text_primary'))
+            Text(item.exceptionTime).margin({ left: 20 }).fontColor($r('app.color.text_secondary'))
+          }.height(50).alignItems(VerticalAlign.Center).width('100%')
+
+          Row() {
+            Text("异常类型").fontSize(14).fontColor($r('app.color.text_primary'))
+            Text(item.exceptionType).margin({ left: 20 }).fontColor($r('app.color.text_secondary'))
+          }.height(50).alignItems(VerticalAlign.Center).width('100%')
+
+          Row() {
+            Text("处理结果").fontSize(14).fontColor($r('app.color.text_primary'))
+            Text("继续运输").margin({ left: 20 }).fontColor($r('app.color.text_secondary'))
+          }.height(50).alignItems(VerticalAlign.Center).width('100%')
+        }
+
+        // 跳转到详情
+        Image($r("app.media.ic_btn_more")).width(24).height(24)
+      }
+      .width('100%')
+      .padding({ left: 15, right: 15 })
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .onClick(() => {
+        router.pushUrl({
+          url: 'pages/Report/ReportDetail',
+          params: {
+            formData: item
+          }
+        })
+      })
+
+    })
+  }
+
   /*-----------------------👇👇 function 👇👇--------------------------------*/
   aboutToAppear() {
     const params = router.getParams() as CommonRouterParams
     if (params && params.id) {
       this.getTaskDetail(params.id)
     }
+  }
+
+  onPageShow(): void {
+    const params = router.getParams() as CommonRouterParams
+    if (params && params.addExcept) {
+      // 此时需要更新异常信息 其他信息不更新
+      this.updateException()
+    }
+  }
+
+  async updateException() {
+    // 只更新异常信息的字段
+    this.taskDetailData.exceptionList = (await getTaskDetailAPI(this.taskDetailData.id)).exceptionList
   }
 
   async getTaskDetail(id: string) {
@@ -371,6 +449,16 @@ struct TaskDetail {
     this.loading.close()
     // 滚动到顶部
     promptAction.showToast({ message: '交货成功' })
+  }
+
+  // 导航  拉起第三方的应用
+  beginNav() {
+    const context = getContext() as common.UIAbilityContext
+    context.startAbility({
+      action: 'ohos.want.action.viewData', // 拉起浏览器应用
+      entities: ['entity.system.browsable'],
+      uri: encodeURI('https://gaode.com/search?query=' + this.taskDetailData.endAddress)
+    })
   }
 
   build() {

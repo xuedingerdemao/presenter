@@ -1,16 +1,19 @@
+@Builder
+function MyBuilderFunction(): void {
+}
+
 @Preview
 @CustomDialog
 @Component
 struct SelectCard {
-  controller: CustomDialogController
+  controller: CustomDialogController = new CustomDialogController({ builder: MyBuilderFunction() })
   title: string = "请选择"
   showClose: boolean = true // 是否显示关闭按钮
   showButton: boolean = true // 是否显示底部按钮
   buttonText: string = "确定"
   // 参数接收内部要渲染的UI结构
   @BuilderParam
-  cardContent: () => void
-
+  cardContent: () => void = MyBuilderFunction
   confirm: () => void = () => {
   } // 点击确定事件
 
@@ -50,12 +53,14 @@ struct SelectCard {
         }.width('100%').justifyContent(FlexAlign.Center)
       }
     }
-
-    .justifyContent(FlexAlign.SpaceBetween).padding({
-      left: 21.36,
-      right: 21.36
+    .justifyContent(FlexAlign.SpaceBetween)
+    .padding({
+      left: 22,
+      right: 22,
+      bottom: JSON.parse(AppStorage.get('bottomHeight'))
     })
     .backgroundColor($r('app.color.white'))
+    .borderRadius({ topLeft: 10, topRight: 10 })
   }
 }
 

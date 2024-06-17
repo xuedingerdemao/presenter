@@ -1,6 +1,18 @@
-import { Card, CardItem, DateFormat, SelectCard, TopNavBar, Upload } from '@presenter/basic'
-import { router } from '@kit.ArkUI'
-import { CommonRouterParams, ExceptionParamsType, ExceptionParamsTypeModel } from '../../models'
+import {
+  Card,
+  CardItem,
+  checkPermission,
+  CommonRouterParams,
+  DateFormat,
+  SelectCard,
+  TopNavBar,
+  Upload,
+  UploadFile
+} from '@presenter/basic'
+import { promptAction, router } from '@kit.ArkUI'
+import { ExceptionParamsType, ExceptionParamsTypeModel } from '../../models'
+import { abilityAccessCtrl, bundleManager, common, Permissions } from '@kit.AbilityKit'
+import { exceptionReportAPI } from '../../api/modules/taskAPI'
 
 @Entry
 @Component
@@ -60,12 +72,99 @@ struct Report {
   }
 
   /*-----------------------👇👇 function 👇👇--------------------------------*/
-  aboutToAppear() {
+  // aboutToAppear() {
+  //   const params = router.getParams() as CommonRouterParams
+  //   if (params && params.id) {
+  //     this.exceptionForm.transportTaskId = params.id
+  //   }
+  // }
+  onPageShow(): void {
     const params = router.getParams() as CommonRouterParams
+    if (params && params.location) {
+      this.exceptionForm.exceptionPlace = params.location
+    }
     if (params && params.id) {
       this.exceptionForm.transportTaskId = params.id
     }
   }
+
+  getBtnEnable() {
+    return !!(this.exceptionForm.exceptionDescribe &&
+    this.exceptionForm.exceptionPlace &&
+    this.exceptionForm.exceptionType &&
+    this.exceptionForm.exceptionTime)
+  }
+
+  async submit() {
+    // 先上传 再调用接口
+    if (this.exceptionForm.exceptionImagesList?.length) {
+      // 云端地址
+      this.exceptionForm.exceptionImagesList = await UploadFile(this.exceptionForm.exceptionImagesList)
+    }
+    // 调用接口
+    await exceptionReportAPI(this.exceptionForm) // 上报异常
+    promptAction.showToast({ message: '上报成功' })
+    router.back({
+      url: 'pages/TaskDetail/TaskDetail',
+      params: {
+        addExcept: true // 表示上报异常成功
+      }
+    })
+  }
+
+  /*请求权限方法*/
+  // async checkPermission(requestPermission: Permissions[], permission: Permissions, mess: string, callback: () => void) {
+  // /* [
+  //        "ohos.permission.LOCATION",
+  //        "ohos.permission.APPROXIMATELY_LOCATION"
+  //      ]*/
+  //   try {
+  //     const manager = abilityAccessCtrl.createAtManager() // 创建程序控制管理器
+  //     await manager.requestPermissionsFromUser(getContext(), requestPermission) //申请权限
+  //     // 获取应用信息
+  //     const buildInfo =
+  //       bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
+  //     const status = manager.checkAccessTokenSync(buildInfo.appInfo?.accessTokenId, permission)
+  //     // promptAction.showDialog({ message: JSON.stringify(abilityAccessCtrl.GrantStatus.PERMISSION_DENIED) })
+  //     if (status === abilityAccessCtrl.GrantStatus.PERMISSION_DENIED) {
+  //       AlertDialog.show(
+  //         {
+  //           message: mess,
+  //           autoCancel: true,
+  //           alignment: DialogAlignment.Center,
+  //           primaryButton: {
+  //             value: '去申请',
+  //             fontColor: Color.Black,
+  //             action: () => {
+  //               promptAction.showToast({ message: '确认' })
+  //               // 不被允许
+  //               const context = getContext() as common.UIAbilityContext
+  //               context.startAbility({
+  //                 bundleName: 'com.huawei.hmos.settings',
+  //                 abilityName: 'com.huawei.hmos.settings.MainAbility',
+  //                 uri: "application_info_entry",
+  //                 parameters: {
+  //                   pushParams: buildInfo.name
+  //                 }
+  //               })
+  //             }
+  //           },
+  //           secondaryButton: {
+  //             value: '取消申请',
+  //             fontColor: Color.Red,
+  //             action: () => {
+  //               promptAction.showToast({ message: '取消' })
+  //             }
+  //           },
+  //         })
+  //     } else {
+  //       callback && callback()
+  //
+  //     }
+  //   } catch (error) {
+  //
+  //   }
+  // }
 
   build() {
     Column() {
@@ -75,7 +174,7 @@ struct Report {
           Card() {
             CardItem({
               leftTitle: '异常时间',
-              rightText: '请选择',
+              rightText: this.exceptionForm.exceptionTime || '请选择',
               onRightClick: () => {
                 DatePickerDialog.show({
                   showTime: true,
@@ -89,10 +188,29 @@ struct Report {
             CardItem({
               leftTitle: '上报位置',
               rightText: '请选择',
+              onRightClick: () => {
+                const requestPermission: Permissions[] = [
+                  "ohos.permission.LOCATION",
+                  "ohos.permission.APPROXIMATELY_LOCATION"
+                ]
+                const permission: Permissions = 'ohos.permission.LOCATION'
+                const mess = '使用定位需要申请定位风权限'
+
+                const callback = () => {
+                  router.pushUrl({
+                    url: "pages/SelectLocation/SelectLocation"
+                  })
+                }
+
+                checkPermission(requestPermission, permission, mess, () => {
+                  callback()
+                })
+
+              }
             })
             CardItem({
               leftTitle: '异常类型',
-              rightText: '请选择',
+              rightText: this.exceptionForm.exceptionType || '请选择',
               onRightClick: () => {
                 this.selectDialog.open()
               }
@@ -121,8 +239,11 @@ struct Report {
           Card() {
             Upload({
               title: '上传图片(最多6张)',
-              imgList: []
-            , canUpload: true
+              imgList: this.exceptionForm.exceptionImagesList || [],
+              canUpload: true,
+              onListChange: (list) => {
+                this.exceptionForm.exceptionImagesList = list // 接回传回的数组 相册地址 并不是线上地址
+              }
             })
             Row().height(20)
           }
@@ -134,7 +255,11 @@ struct Report {
 
 
       Row() {
-        Button("提交").height(50).width(207).backgroundColor($r('app.color.primary_disabled'))
+        Button("提交")
+          .height(50)
+          .width(207)
+          .backgroundColor($r('app.color.primary_disabled'))
+          .enabled(this.getBtnEnable())
       }
       .position({
         y: '100%'
@@ -147,6 +272,11 @@ struct Report {
       .justifyContent(FlexAlign.Center)
       .backgroundColor($r('app.color.white'))
     }
-    .height('100%').backgroundColor($r('app.color.background_page'))
+    .padding({
+      top: JSON.parse(AppStorage.get("topHeight")),
+      bottom: JSON.parse(AppStorage.get('bottomHeight'))
+    })
+    .height('100%')
+    .backgroundColor($r('app.color.background_page'))
   }
 }

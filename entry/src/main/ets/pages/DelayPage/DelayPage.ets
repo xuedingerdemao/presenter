@@ -1,7 +1,7 @@
 import { promptAction, router } from '@kit.ArkUI'
-import { Card, CardItem, DateFormat, TopNavBar } from '@presenter/basic'
+import { Card, CardItem, CommonRouterParams, DateFormat, TopNavBar } from '@presenter/basic'
 import { delayAPI } from '../../api/modules/taskAPI'
-import { CommonRouterParams, DelayParamsType, DelayParamsTypeModel } from '../../models'
+import { DelayParamsType, DelayParamsTypeModel } from '../../models'
 
 @Entry
 @Component
@@ -91,6 +91,11 @@ struct Delay {
 
       }
     }
-    .height('100%').backgroundColor($r('app.color.background_page'))
+    .padding({
+      top: JSON.parse(AppStorage.get("topHeight")),
+      bottom: JSON.parse(AppStorage.get('bottomHeight'))
+    })
+    .height('100%')
+    .backgroundColor($r('app.color.background_page'))
   }
 }
