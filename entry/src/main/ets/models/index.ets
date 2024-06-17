@@ -18,5 +18,3 @@ export * from './modules/deliver'
 export * from './modules/delay'
 
 export * from './modules/task'
-
-export * from './modules/router'

@@ -105,8 +105,6 @@ struct TaskItemCard {
             .margin({ top: 4 })
         }.alignItems(HorizontalAlign.Start)
 
-        // ts 的类型其实是鸭子 结构类型
-        // 名字可以不一样 但是结构一样也能匹配类型
         if (parseInt(this.taskItemData.status) !== TaskTypeEnum.Finish) {
           Button(this.getBtnText(), { type: ButtonType.Capsule })
             .backgroundColor($r('app.color.primary'))

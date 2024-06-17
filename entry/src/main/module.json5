@@ -16,6 +16,22 @@
       //申请网络权限
       {
         "name": "ohos.permission.INTERNET",
+      },
+      {
+        "name": "ohos.permission.LOCATION",
+        "reason": "$string:LOCATION_REASON",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.APPROXIMATELY_LOCATION",
+        "reason": "$string:LOCATION_REASON",
+        "usedScene": {
+          "abilities": ["EntryAbility"],
+          "when": "always"
+        }
       }
     ],
     "abilities": [
@@ -38,6 +54,12 @@
             ]
           }
         ]
+      }
+    ],
+    "metadata": [
+      {
+        "name": "client_id",
+        "value": '111279211'
       }
     ]
   }

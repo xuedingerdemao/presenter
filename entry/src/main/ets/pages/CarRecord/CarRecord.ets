@@ -1,8 +1,7 @@
-import { Card, CardItem, CheckBox, DateFormat, Loading, TopNavBar } from '@presenter/basic'
+import { Card, CardItem, CheckBox, CommonRouterParams, DateFormat, Loading, TopNavBar } from '@presenter/basic'
 import {
   CarRecordType,
   CarRecordTypeModel,
-  CommonRouterParams,
   TaskDetailInfo,
   TaskDetailInfoModel
 } from '../../models'
@@ -48,7 +47,7 @@ struct CarRecord {
     this.loading.close()
     promptAction.showToast({ message: '回车登记成功' })
     router.clear() // 清空页面栈
-    router.replaceUrl({ url: 'pages/Index/Index' })
+    router.replaceUrl({ url: 'pages/Main/Index' })
   }
 
   build() {
@@ -64,7 +63,7 @@ struct CarRecord {
             })
             CardItem({
               leftTitle: '回车时间',
-              rightText: '请选择',
+              rightText: this.carRecord.endTime || '请选择',
               showBottomBorder: false,
               onRightClick: () => {
                 DatePickerDialog.show({

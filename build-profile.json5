@@ -1,6 +1,20 @@
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storePassword": "00000018E699DFED68BA17BBEBAA453D8D0806DE8B4EE44DFDE23D779647B35F48119173A9298E8C",
+          "certpath": "C:/Users/OP0212/Desktop/HarmonyDemo/presenter_zhengshu/presenter.cer",
+          "keyAlias": "chenlaotou",
+          "keyPassword": "000000186924059ED6B25D65093B5AD86F59C941317B232A1457AA012C1B9020F4F44E271080FEC3",
+          "profile": "C:/Users/OP0212/Desktop/HarmonyDemo/presenter_zhengshu/Debug.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:/Users/OP0212/Desktop/HarmonyDemo/presenter_zhengshu/.p12"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
