@@ -28,15 +28,14 @@ struct TaskList {
   async getTaskList(append: boolean) {
     const result = await getTaskListAPI(this.queryParams)
     // 追加数据
-    // this.taskListData = this.taskListData.concat(result.items) // 拿到返回的数组
     if (append) {
-      this.taskListData.push(...result.items || []) // 延展运算符的写法
+      this.taskListData.push(...result.items || [])
     } else {
-      this.taskListData = result.items // 直接赋值
+      this.taskListData = result.items
     }
 
-    this.allPage = result.pages // 总页数
-    this.queryParams.page++ // 下次请求的页码
+    this.allPage = result.pages
+    this.queryParams.page++
   }
 
   @Builder
@@ -48,7 +47,7 @@ struct TaskList {
   async onRefresh() {
     // 重新请求第一页数据
     this.queryParams.page = 1 // 重置第一页
-    await this.getTaskList(false) // 直接赋值
+    await this.getTaskList(false)
   }
 
   // 补零函数
@@ -69,8 +68,6 @@ struct TaskList {
           .backgroundColor($r('app.color.background_page'))
           .height(32)
           .onSubmit(async (value) => {
-            // 点击键盘的右下角的提交
-            // 4042715413936324752
             this.loading.open()
             this.allPage = 1 // 总页数为1
             this.queryParams.page = 1 // 查第一页
@@ -92,7 +89,6 @@ struct TaskList {
       .padding({ left: 15, right: 15, bottom: 5 })
 
       Row() {
-        // 完成搜索页需要测试点击之后键盘和弹层同时弹出的情况
         Button(this.queryParams.startTime || '开始时间')
           .fontSize(14)
           .width(106)
@@ -134,19 +130,17 @@ struct TaskList {
           .enabled(this.getSearchEnable())
           .onClick(async () => {
             if (this.reset) {
-              // 表示现在需要重置 将开始时间和结束时间清空
               this.queryParams.startTime = ""
               this.queryParams.endTime = ""
             }
-            this.reset = !this.reset // 状态取反
+            this.reset = !this.reset
 
             this.loading.open()
-            // 搜索
             // 处理总页数 处理第几页
             this.allPage = 1 // 默认有一页
             this.queryParams.page = 1
             // 获取数据
-            await this.getTaskList(false) // true是追加 false是不追加
+            await this.getTaskList(false)
 
             this.loading.close()
 
@@ -169,7 +163,6 @@ struct TaskList {
       ListComponents({
         dataSource: this.taskListData, // 数据源
         finished: this.allPage < this.queryParams.page, // 是否还有下一页
-        // 上拉加载的函数
         onLoad: async () => {
           // 上拉加载
           await this.getTaskList(true) // 追加逻辑
@@ -179,7 +172,6 @@ struct TaskList {
           await this.onRefresh()
         },
         renderItem: (item: object) => {
-          // 如果需要的是builderParams的参数 可以用普通函数包裹一个Builder的函数
           this.renderItem(item)
         },
         loadingText: '拼命加载中',

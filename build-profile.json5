@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "storePassword": "00000018E699DFED68BA17BBEBAA453D8D0806DE8B4EE44DFDE23D779647B35F48119173A9298E8C",
-          "certpath": "C:/Users/OP0212/Desktop/HarmonyDemo/presenter_zhengshu/presenter.cer",
+          "storePassword": "0000001808A556A9C50D3F050FA028C4B0E3610722B0508D0464C8BFF9586E0CFB338A03112841C2",
+          "certpath": "C:/Users/zou/Desktop/HarmonyDemo/presenter_zhengshu/presenter.cer",
           "keyAlias": "chenlaotou",
-          "keyPassword": "000000186924059ED6B25D65093B5AD86F59C941317B232A1457AA012C1B9020F4F44E271080FEC3",
-          "profile": "C:/Users/OP0212/Desktop/HarmonyDemo/presenter_zhengshu/Debug.p7b",
+          "keyPassword": "0000001868B271B0E4A43074E8DDB6407ED1C8C5B20672096CE366E08B764DF8A980226E2592C3B5",
+          "profile": "C:/Users/zou/Desktop/HarmonyDemo/presenter_zhengshu/Debug.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:/Users/OP0212/Desktop/HarmonyDemo/presenter_zhengshu/.p12"
+          "storeFile": "C:/Users/zou/Desktop/HarmonyDemo/presenter_zhengshu/.p12"
         }
       }
     ],
