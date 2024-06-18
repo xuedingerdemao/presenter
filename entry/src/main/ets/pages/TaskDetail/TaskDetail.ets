@@ -551,6 +551,7 @@ struct TaskDetail {
                 .onClick(async () => {
                   this.snapImg = await componentSnapshot.get("CutImg")
                   this.showSnap = true
+                  //打印id相关信息
                   // const res = getInspectorByKey("CutImg")
                 })
             }
