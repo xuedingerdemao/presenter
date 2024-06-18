@@ -1,4 +1,4 @@
-import { promptAction, router } from '@kit.ArkUI'
+import { componentSnapshot, promptAction, router } from '@kit.ArkUI'
 import {
   DeliverParamsTypeModel,
   ExceptionList,
@@ -20,6 +20,9 @@ import {
 import { deliverAPI, getTaskDetailAPI, pickUpAPI } from '../../api/modules/taskAPI'
 import { common } from '@kit.AbilityKit'
 import { call } from '@kit.TelephonyKit'
+import { MessageEvents, worker } from '@kit.ArkTS'
+import { PostParams } from '../../workers/UploadWorker'
+import { image } from '@kit.ImageKit'
 
 class BaseBuilderClass {
   title: string = ""
@@ -54,6 +57,10 @@ struct TaskDetail {
     builder: Loading({ title: '处理中...' }),
     customStyle: true
   })
+  @State
+  snapImg: image.PixelMap | null = null
+  @State
+  showSnap: boolean = false
 
   /*-----------------------👇👇 Builder 👇👇--------------------------------*/
   // 司机信息
@@ -363,6 +370,24 @@ struct TaskDetail {
     })
   }
 
+  @Builder
+  getSnapContent() {
+    Column() {
+      Image(this.snapImg)
+        .width("100%")
+        .height("100%")
+        .objectFit(ImageFit.Auto)
+        .borderRadius(6)
+    }
+    .padding("10%")
+    .width("100%")
+    .height("100%")
+    .backgroundColor("rgba(0,0,0,0.2)")
+    .onClick(() => {
+      this.showSnap = false
+    })
+  }
+
   /*-----------------------👇👇 function 👇👇--------------------------------*/
   aboutToAppear() {
     const params = router.getParams() as CommonRouterParams
@@ -391,22 +416,47 @@ struct TaskDetail {
   // 去提货
   async btnPickUp() {
     this.loading.open()
-    const cargoPickUpPictureList = await UploadFile(this.taskDetailData.cargoPickUpPictureList) // 传入提货凭证
-    const cargoPictureList = await UploadFile(this.taskDetailData.cargoPictureList) // 货品照片
-    // 提货操作
-    await pickUpAPI(new PickUpParamsModel({
-      id: this.taskDetailData.id,
-      cargoPickUpPictureList,
-      cargoPictureList
-    }))
-    // 只需要重新获取数据
-    // 重新获取数据
-    this.getTaskDetail(this.taskDetailData.id) // 重新拉取数据
+    // 建立子线程
+    const imageCompress1 = new worker.ThreadWorker("entry/ets/workers/UploadWorker.ets") // 子线程1
+    const imageCompress2 = new worker.ThreadWorker("entry/ets/workers/UploadWorker.ets") // 子线程2
+    let cargoPickUpPictureList: ImageList[] = []
+    let cargoPictureList: ImageList[] = []
 
-    this.scroller.scrollEdge(Edge.Top)
-    this.loading.close()
-    // 滚动到顶部
-    promptAction.showToast({ message: '提货成功' })
+    imageCompress1.onmessage = (e: MessageEvents) => {
+      const params = e.data as PostParams
+      cargoPickUpPictureList = params.files // 已经压缩完毕的图片
+      checkFile() // 检查是否都完成了
+    }
+    imageCompress2.onmessage = (e: MessageEvents) => {
+      const params = e.data as PostParams
+      cargoPictureList = params.files // 已经压缩完毕的图片
+      checkFile()
+    }
+    imageCompress1.postMessage({
+      files: [...this.taskDetailData.cargoPickUpPictureList],
+      filePath: getContext().filesDir
+    }) // 给子线程发消息
+    imageCompress2.postMessage({
+      files: [...this.taskDetailData.cargoPictureList],
+      filePath: getContext().filesDir
+    }) // 给子线程发消息
+
+    const checkFile = async () => {
+      if (cargoPickUpPictureList.length && cargoPictureList.length) {
+        const result = await Promise.all([UploadFile(cargoPickUpPictureList), UploadFile(cargoPictureList)])
+        // 提货操作
+        await pickUpAPI(new PickUpParamsModel({
+          id: this.taskDetailData.id,
+          cargoPickUpPictureList: result[0],
+          cargoPictureList: result[1]
+        }))
+        this.getTaskDetail(this.taskDetailData.id) // 重新拉取数据
+        this.scroller.scrollEdge(Edge.Top)
+        this.loading.close()
+        promptAction.showToast({ message: '提货成功' })
+      }
+    }
+
 
   }
 
@@ -433,22 +483,45 @@ struct TaskDetail {
   // 交货
   async btnDeliver() {
     this.loading.open()
-    const certificatePictureList = await UploadFile(this.taskDetailData.certificatePictureList) // 传入提货凭证
-    const deliverPictureList = await UploadFile(this.taskDetailData.deliverPictureList) // 货品照片
-    // 交货操作
-    await deliverAPI(new DeliverParamsTypeModel({
-      id: this.taskDetailData.id,
-      certificatePictureList,
-      deliverPictureList
-    }))
-    // 只需要重新获取数据
-    // 重新获取数据
-    this.getTaskDetail(this.taskDetailData.id) // 重新拉取数据
-
-    this.scroller.scrollEdge(Edge.Top)
-    this.loading.close()
-    // 滚动到顶部
-    promptAction.showToast({ message: '交货成功' })
+    // 建立子线程
+    const imageCompress1 = new worker.ThreadWorker("entry/ets/workers/UploadWorker.ets") // 子线程1
+    const imageCompress2 = new worker.ThreadWorker("entry/ets/workers/UploadWorker.ets") // 子线程2
+    let certificatePictureList: ImageList[] = []
+    let deliverPictureList: ImageList[] = []
+    imageCompress1.onmessage = (e: MessageEvents) => {
+      const params = e.data as PostParams
+      certificatePictureList = params.files // 已经压缩完毕的图片
+      checkFile() // 检查是否都完成了
+    }
+    imageCompress2.onmessage = (e: MessageEvents) => {
+      const params = e.data as PostParams
+      deliverPictureList = params.files // 已经压缩完毕的图片
+      checkFile()
+    }
+    imageCompress1.postMessage({
+      files: [...this.taskDetailData.certificatePictureList],
+      filePath: getContext().filesDir
+    }) // 给子线程发消息
+    imageCompress2.postMessage({
+      files: [...this.taskDetailData.deliverPictureList],
+      filePath: getContext().filesDir
+    }) // 给子线程发消息
+    // 用来检查是否全部都压缩完毕
+    const checkFile = async () => {
+      if (certificatePictureList.length && deliverPictureList.length) {
+        // 此时此刻才可以进行下一步操作
+        const result = await Promise.all([UploadFile(certificatePictureList), UploadFile(deliverPictureList)])
+        await deliverAPI(new DeliverParamsTypeModel({
+          id: this.taskDetailData.id,
+          certificatePictureList: result[0],
+          deliverPictureList: result[1]
+        }))
+        this.getTaskDetail(this.taskDetailData.id) // 重新拉取数据
+        this.scroller.scrollEdge(Edge.Top)
+        promptAction.showToast({ message: '交货成功' })
+        this.loading.close()
+      }
+    }
   }
 
   // 导航  拉起第三方的应用
@@ -470,6 +543,21 @@ struct TaskDetail {
         TopNavBar({ title: '任务详情' })
         Scroll(this.scroller) {
           Column() {
+            Row() {
+              Image($r("app.media.share"))
+                .width(20)
+                .height(20)
+                .fillColor($r("app.color.primary"))
+                .onClick(async () => {
+                  this.snapImg = await componentSnapshot.get("CutImg")
+                  this.showSnap = true
+                  // const res = getInspectorByKey("CutImg")
+                })
+            }
+            .width("100%")
+            .justifyContent(FlexAlign.End)
+            .padding(10)
+
             ToggleCard({ title: '基本信息' }) {
               this.getBaseContent()
             }
@@ -517,5 +605,9 @@ struct TaskDetail {
     })
     .height('100%')
     .backgroundColor($r('app.color.background_page'))
+    .id('CutImg')
+    .bindContentCover($$this.showSnap, this.getSnapContent(), {
+      modalTransition: ModalTransition.NONE
+    })
   }
 }
